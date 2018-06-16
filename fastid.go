@@ -2,9 +2,11 @@ package fastid
 
 import (
 	"errors"
+	//"fmt"
 	"net"
 	"os"
 	"strconv"
+	"sync/atomic"
 	"time"
 )
 
@@ -14,8 +16,8 @@ const (
 	defaultStartTimeStr        = "2018-06-01T00:00:00.000Z"
 	defaultStartTimeNano int64 = 1527811200000000000
 	timeBits                   = 40
-	seqBits                    = 7
-	machineBits                = 16
+	seqBits                    = 15
+	machineBits                = 8
 )
 
 var seq int64
@@ -28,27 +30,7 @@ var startEpochNano = getStartEpochFromEnv()
 
 var seqMask = ^(int64(-1) << seqBits)
 
-var seqChan = make(chan int64, 32)
-
-func init() {
-	go func() {
-		var lastGenTime int64 = 0
-		var seq int64 = 0
-		for {
-			now := getTimestamp()
-			if now > lastGenTime {
-				lastGenTime = now
-				seq = 0
-			}
-			if seq < seqMask {
-				seq += 1
-				seqChan <- seq
-			} else {
-				time.Sleep(5 * time.Microsecond)
-			}
-		}
-	}()
-}
+var globalLastID int64 = 0
 
 func getTimestamp() int64 {
 	//devided by 2^20 (10^6, nano to milliseconds)
@@ -56,11 +38,34 @@ func getTimestamp() int64 {
 }
 
 func GenInt64ID() int64 {
-	timestamp := getTimestamp()
-	seq := <-seqChan
-	return timestamp<<(seqBits+machineBits) + seq<<machineBits + machineID
+	for {
+		localLastID := atomic.LoadInt64(&globalLastID)
+		seq := GetSeqFromID(localLastID)
+		lastIDTime := GetTimeFromID(localLastID)
+		now := getTimestamp()
+		if now > lastIDTime {
+			seq = 0
+		} else {
+			seq++
+		}
+		if seq > seqMask {
+			time.Sleep(time.Duration(0xFFFFF - (time.Now().UnixNano() & 0xFFFFF)))
+			continue
+		}
+		newID := now<<(seqBits+machineBits) + seq<<machineBits + machineID
+		if atomic.CompareAndSwapInt64(&globalLastID, localLastID, newID) {
+			return newID
+		}
+	}
 }
 
+func GetSeqFromID(id int64) int64 {
+	return (id >> machineBits) & seqMask
+}
+
+func GetTimeFromID(id int64) int64 {
+	return id >> (machineBits + seqBits)
+}
 func getMachineId() int64 {
 	//getting machine from env
 	if machineIDStr, ok := os.LookupEnv(MachineIDEnvName); ok {
