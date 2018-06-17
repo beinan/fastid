@@ -1,4 +1,4 @@
 # fastid
 
-[![Coverage Status](https://coveralls.io/repos/beinan/fastid/badge.svg?branch=master)](https://coveralls.io/r/beinan/fastid?branch=master)
+[![codecov](https://codecov.io/gh/beinan/fastid/branch/master/graph/badge.svg)](https://codecov.io/gh/beinan/fastid)
 
