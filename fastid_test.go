@@ -40,12 +40,12 @@ func TestGenID(t *testing.T) {
 	}
 }
 
-func ExampleFastIDConfig_recommendedSettings() {
+func ExampleConfig_recommendedSettings() {
 	id := CommonConfig.GenInt64ID()
 	fmt.Printf("id generated: %v", id)
 }
 
-func ExampleFastIDConfig_customizedSettings() {
+func ExampleConfig_customizedSettings() {
 	config := ConstructConfigWithMachineID(40, 11, 12, 2)
 	id := config.GenInt64ID()
 	fmt.Printf("id generated: %v", id)
