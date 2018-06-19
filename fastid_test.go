@@ -47,7 +47,7 @@ func ExampleFastIDConfig_recommendedSettings() {
 
 func ExampleFastIDConfig_customizedSettings() {
 	config := ConstructConfigWithMachineID(40, 11, 12, 2)
-	id := config.GenInt64ID()
+	id := CommonConfig.GenInt64ID()
 	fmt.Printf("id generated: %v", id)
 }
 
