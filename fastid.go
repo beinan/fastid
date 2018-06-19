@@ -1,4 +1,4 @@
-//FastID is a distributed, k-ordered unique ID generator.
+// Package fastid is a distributed, k-ordered unique ID generator.
 //  Under 64 bits (Long Integer)
 //  Lock-free (using atomic CAS)
 //  Decentralized and no coordination needed
@@ -15,13 +15,16 @@ import (
 )
 
 const (
-	StartTimeEnvName           = "FASTID_START_TIME"
+	//StartTimeEnvName is the env key for ID generating start time
+	StartTimeEnvName = "FASTID_START_TIME"
+	//MachineIDEnvName is the env key for machine id
 	MachineIDEnvName           = "FASTID_MACHINE_ID"
 	defaultStartTimeStr        = "2018-06-01T00:00:00.000Z"
 	defaultStartTimeNano int64 = 1527811200000000000
 )
 
-type FastIDConfig struct {
+//Config maintains the settings for id generating
+type Config struct {
 	timeBits      uint
 	seqBits       uint
 	machineBits   uint
@@ -32,13 +35,15 @@ type FastIDConfig struct {
 	lastID        int64
 }
 
-func ConstructConfig(timeBits, seqBits, machineBits uint) *FastIDConfig {
-	return ConstructConfigWithMachineID(timeBits, seqBits, machineBits, getMachineId())
+//ConstructConfig creates an instance of FastIDConfig with the given settings
+func ConstructConfig(timeBits, seqBits, machineBits uint) *Config {
+	return ConstructConfigWithMachineID(timeBits, seqBits, machineBits, getMachineID())
 }
 
-func ConstructConfigWithMachineID(timeBits, seqBits, machineBits uint, machineID int64) *FastIDConfig {
+//ConstructConfigWithMachineID creates an config with machine id, in case you don't want to use the lower 16 bits of the IP address.
+func ConstructConfigWithMachineID(timeBits, seqBits, machineBits uint, machineID int64) *Config {
 	machineIDMask := ^(int64(-1) << machineBits)
-	return &FastIDConfig{
+	return &Config{
 		timeBits:      timeBits,
 		seqBits:       seqBits,
 		machineBits:   machineBits,
@@ -50,13 +55,13 @@ func ConstructConfigWithMachineID(timeBits, seqBits, machineBits uint, machineID
 	}
 }
 
-// High performance setting for benchmark
+// BenchmarkConfig is a high performance setting for benchmark
 //  40 bits timestamp
 //  15 bits seq
 //  8  bits machine id
 var BenchmarkConfig = ConstructConfig(40, 15, 8)
 
-// Recommended setting for most applications
+// CommonConfig is the recommended setting for most applications
 //  40 bits timestamp
 //  7  bits seq
 //  16 bits machine id
@@ -64,13 +69,13 @@ var CommonConfig = ConstructConfig(40, 2, 16)
 
 var startEpochNano = getStartEpochFromEnv()
 
-func (c *FastIDConfig) getCurrentTimestamp() int64 {
+func (c *Config) getCurrentTimestamp() int64 {
 	//devided by 2^20 (~10^6, nano to milliseconds)
 	return (time.Now().UnixNano() - startEpochNano) >> 20 & c.timeMask
 }
 
-//Generate unique int64 ID with the setting
-func (c *FastIDConfig) GenInt64ID() int64 {
+//GenInt64ID generates unique int64 IDs with the setting in the methond owner
+func (c *Config) GenInt64ID() int64 {
 	for {
 		localLastID := atomic.LoadInt64(&c.lastID)
 		seq := c.GetSeqFromID(localLastID)
@@ -88,23 +93,22 @@ func (c *FastIDConfig) GenInt64ID() int64 {
 		newID := now<<(c.machineBits+c.seqBits) + seq<<c.machineBits + c.machineID
 		if atomic.CompareAndSwapInt64(&c.lastID, localLastID, newID) {
 			return newID
-		} else {
-			time.Sleep(time.Duration(20))
 		}
+		time.Sleep(time.Duration(20))
 	}
 }
 
-//Extract seq number from an existing ID
-func (c *FastIDConfig) GetSeqFromID(id int64) int64 {
+//GetSeqFromID extracts seq number from an existing ID
+func (c *Config) GetSeqFromID(id int64) int64 {
 	return (id >> c.machineBits) & c.seqMask
 }
 
-//Extract timestamp from an existing ID
-func (c *FastIDConfig) GetTimeFromID(id int64) int64 {
+//GetTimeFromID extracts timestamp from an existing ID
+func (c *Config) GetTimeFromID(id int64) int64 {
 	return id >> (c.machineBits + c.seqBits)
 }
 
-func getMachineId() int64 {
+func getMachineID() int64 {
 	//getting machine from env
 	if machineIDStr, ok := os.LookupEnv(MachineIDEnvName); ok {
 		if machineID, err := strconv.ParseInt(machineIDStr, 10, 64); err == nil {
