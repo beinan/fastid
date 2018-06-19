@@ -1,6 +1,7 @@
 # FastID
 
 [![Godoc](https://godoc.org/github.com/beinan/fastid?status.svg)](https://godoc.org/github.com/beinan/fastid)
+[![Go Report Card](https://goreportcard.com/badge/github.com/beinan/fastid)](https://goreportcard.com/report/github.com/beinan/fastid)
 [![Build Status](https://travis-ci.org/beinan/fastid.svg?branch=master)](https://travis-ci.org/beinan/fastid)
 [![codecov](https://codecov.io/gh/beinan/fastid/branch/master/graph/badge.svg)](https://codecov.io/gh/beinan/fastid)
 
