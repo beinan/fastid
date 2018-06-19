@@ -2,7 +2,6 @@ package fastid
 
 import (
 	"errors"
-	//"fmt"
 	"net"
 	"os"
 	"strconv"
@@ -15,57 +14,79 @@ const (
 	MachineIDEnvName           = "FASTID_MACHINE_ID"
 	defaultStartTimeStr        = "2018-06-01T00:00:00.000Z"
 	defaultStartTimeNano int64 = 1527811200000000000
-	timeBits                   = 40
-	seqBits                    = 15
-	machineBits                = 8
 )
 
-var seq int64
-
-var machineIDMask = ^(int64(-1) << machineBits)
-var machineID = getMachineId() & machineIDMask
-
-var timeMask = ^(int64(-1) << timeBits)
-var startEpochNano = getStartEpochFromEnv()
-
-var seqMask = ^(int64(-1) << seqBits)
-
-var globalLastID int64 = 0
-
-func getTimestamp() int64 {
-	//devided by 2^20 (10^6, nano to milliseconds)
-	return (time.Now().UnixNano() - startEpochNano) >> 20 & timeMask
+type FastIDConfig struct {
+	timeBits      uint
+	seqBits       uint
+	machineBits   uint
+	timeMask      int64
+	seqMask       int64
+	machineID     int64
+	machineIDMask int64
+	lastID        int64
 }
 
-func GenInt64ID() int64 {
+func ConstructConfig(timeBits, seqBits, machineBits uint) *FastIDConfig {
+	return ConstructConfigWithMachineID(timeBits, seqBits, machineBits, getMachineId())
+}
+
+func ConstructConfigWithMachineID(timeBits, seqBits, machineBits uint, machineID int64) *FastIDConfig {
+	machineIDMask := ^(int64(-1) << machineBits)
+	return &FastIDConfig{
+		timeBits:      timeBits,
+		seqBits:       seqBits,
+		machineBits:   machineBits,
+		timeMask:      ^(int64(-1) << timeBits),
+		seqMask:       ^(int64(-1) << seqBits),
+		machineIDMask: machineIDMask,
+		machineID:     machineID & machineIDMask,
+		lastID:        0,
+	}
+}
+
+var FastConfig = ConstructConfig(40, 15, 8)
+var CommonConfig *FastIDConfig = ConstructConfig(40, 7, 16)
+
+var startEpochNano = getStartEpochFromEnv()
+
+func (c *FastIDConfig) getCurrentTimestamp() int64 {
+	//devided by 2^20 (~10^6, nano to milliseconds)
+	return (time.Now().UnixNano() - startEpochNano) >> 20 & c.timeMask
+}
+
+func (c *FastIDConfig) GenInt64ID() int64 {
 	for {
-		localLastID := atomic.LoadInt64(&globalLastID)
-		seq := GetSeqFromID(localLastID)
-		lastIDTime := GetTimeFromID(localLastID)
-		now := getTimestamp()
+		localLastID := atomic.LoadInt64(&c.lastID)
+		seq := c.GetSeqFromID(localLastID)
+		lastIDTime := c.GetTimeFromID(localLastID)
+		now := c.getCurrentTimestamp()
 		if now > lastIDTime {
 			seq = 0
+		} else if seq > c.seqMask {
+			time.Sleep(time.Duration(0xFFFFF - (time.Now().UnixNano() & 0xFFFFF)))
+			continue
 		} else {
 			seq++
 		}
-		if seq > seqMask {
-			time.Sleep(time.Duration(0xFFFFF - (time.Now().UnixNano() & 0xFFFFF)))
-			continue
-		}
-		newID := now<<(seqBits+machineBits) + seq<<machineBits + machineID
-		if atomic.CompareAndSwapInt64(&globalLastID, localLastID, newID) {
+
+		newID := now<<(c.seqBits+c.machineBits) + seq<<c.machineBits + c.machineID
+		if atomic.CompareAndSwapInt64(&c.lastID, localLastID, newID) {
 			return newID
+		} else {
+			time.Sleep(time.Duration(20))
 		}
 	}
 }
 
-func GetSeqFromID(id int64) int64 {
-	return (id >> machineBits) & seqMask
+func (c *FastIDConfig) GetSeqFromID(id int64) int64 {
+	return (id >> c.machineBits) & c.seqMask
 }
 
-func GetTimeFromID(id int64) int64 {
-	return id >> (machineBits + seqBits)
+func (c *FastIDConfig) GetTimeFromID(id int64) int64 {
+	return id >> (c.machineBits + c.seqBits)
 }
+
 func getMachineId() int64 {
 	//getting machine from env
 	if machineIDStr, ok := os.LookupEnv(MachineIDEnvName); ok {

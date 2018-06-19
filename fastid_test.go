@@ -13,7 +13,7 @@ func TestGenID(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		go func() {
 			for i := 0; i < 100; i++ {
-				id := GenInt64ID()
+				id := FastConfig.GenInt64ID()
 				t.Logf("id: %b \t %x \t %d", id, id, id)
 				results <- id
 			}
@@ -41,14 +41,14 @@ func TestGenID(t *testing.T) {
 
 func BenchmarkGenID(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		GenInt64ID()
+		FastConfig.GenInt64ID()
 	}
 }
 
 func BenchmarkGenIDP(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			GenInt64ID()
+			FastConfig.GenInt64ID()
 		}
 	})
 }
