@@ -1,6 +1,7 @@
 package fastid
 
 import (
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -13,7 +14,7 @@ func TestGenID(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		go func() {
 			for i := 0; i < 100; i++ {
-				id := FastConfig.GenInt64ID()
+				id := CommonConfig.GenInt64ID()
 				t.Logf("id: %b \t %x \t %d", id, id, id)
 				results <- id
 			}
@@ -28,7 +29,7 @@ func TestGenID(t *testing.T) {
 		case id := <-results:
 			if _, ok := m[id]; ok {
 				t.Errorf("Found duplicated id: %x", id)
-				return
+				//return
 			} else {
 				m[id] = true
 			}
@@ -39,16 +40,27 @@ func TestGenID(t *testing.T) {
 	}
 }
 
+func ExampleFastIDConfig_recommendedSettings() {
+	id := CommonConfig.GenInt64ID()
+	fmt.Printf("id generated: %v", id)
+}
+
+func ExampleFastIDConfig_customizedSettings() {
+	config := ConstructConfigWithMachineID(40, 11, 12, 2)
+	id := config.GenInt64ID()
+	fmt.Printf("id generated: %v", id)
+}
+
 func BenchmarkGenID(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		FastConfig.GenInt64ID()
+		BenchmarkConfig.GenInt64ID()
 	}
 }
 
 func BenchmarkGenIDP(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			FastConfig.GenInt64ID()
+			BenchmarkConfig.GenInt64ID()
 		}
 	})
 }

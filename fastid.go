@@ -1,3 +1,8 @@
+//FastID is a distributed, k-ordered unique ID generator.
+//  Under 64 bits (Long Integer)
+//  Lock-free (using atomic CAS)
+//  Decentralized and no coordination needed
+//  Docker friendly
 package fastid
 
 import (
@@ -45,8 +50,17 @@ func ConstructConfigWithMachineID(timeBits, seqBits, machineBits uint, machineID
 	}
 }
 
-var FastConfig = ConstructConfig(40, 15, 8)
-var CommonConfig *FastIDConfig = ConstructConfig(40, 7, 16)
+// High performance setting for benchmark
+//  40 bits timestamp
+//  15 bits seq
+//  8  bits machine id
+var BenchmarkConfig = ConstructConfig(40, 15, 8)
+
+// Recommended setting for most applications
+//  40 bits timestamp
+//  7  bits seq
+//  16 bits machine id
+var CommonConfig = ConstructConfig(40, 2, 16)
 
 var startEpochNano = getStartEpochFromEnv()
 
@@ -55,6 +69,7 @@ func (c *FastIDConfig) getCurrentTimestamp() int64 {
 	return (time.Now().UnixNano() - startEpochNano) >> 20 & c.timeMask
 }
 
+//Generate unique int64 ID with the setting
 func (c *FastIDConfig) GenInt64ID() int64 {
 	for {
 		localLastID := atomic.LoadInt64(&c.lastID)
@@ -63,14 +78,14 @@ func (c *FastIDConfig) GenInt64ID() int64 {
 		now := c.getCurrentTimestamp()
 		if now > lastIDTime {
 			seq = 0
-		} else if seq > c.seqMask {
+		} else if seq >= c.seqMask {
 			time.Sleep(time.Duration(0xFFFFF - (time.Now().UnixNano() & 0xFFFFF)))
 			continue
 		} else {
 			seq++
 		}
 
-		newID := now<<(c.seqBits+c.machineBits) + seq<<c.machineBits + c.machineID
+		newID := now<<(c.machineBits+c.seqBits) + seq<<c.machineBits + c.machineID
 		if atomic.CompareAndSwapInt64(&c.lastID, localLastID, newID) {
 			return newID
 		} else {
@@ -79,10 +94,12 @@ func (c *FastIDConfig) GenInt64ID() int64 {
 	}
 }
 
+//Extract seq number from an existing ID
 func (c *FastIDConfig) GetSeqFromID(id int64) int64 {
 	return (id >> c.machineBits) & c.seqMask
 }
 
+//Extract timestamp from an existing ID
 func (c *FastIDConfig) GetTimeFromID(id int64) int64 {
 	return id >> (c.machineBits + c.seqBits)
 }
