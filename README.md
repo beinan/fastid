@@ -1,11 +1,11 @@
-# FastID
+# FastID -- Snowflake ID generating in Go
 
 [![Godoc](https://godoc.org/github.com/beinan/fastid?status.svg)](https://godoc.org/github.com/beinan/fastid)
 [![Go Report Card](https://goreportcard.com/badge/github.com/beinan/fastid)](https://goreportcard.com/report/github.com/beinan/fastid)
 [![Build Status](https://travis-ci.org/beinan/fastid.svg?branch=master)](https://travis-ci.org/beinan/fastid)
 [![codecov](https://codecov.io/gh/beinan/fastid/branch/master/graph/badge.svg)](https://codecov.io/gh/beinan/fastid)
 
-FastID is a pluggable unique ID generator in go-lang. 
+FastID is a pluggable unique ID generator in Go. 
 
 * Under 64 bits (Long Integer)
 * K-Ordered
@@ -32,6 +32,9 @@ func ExampleGenInt64ID() {
  * 7  bits sequence number
  
 With this setting, FastID is able to generate 128(2^7) unique IDs per millisecond (1.048576 millisecond, 2^10 nanosecond).
+
+### Customized Settings
+See the examples in [GoDoc](https://godoc.org/github.com/beinan/fastid)
 
 ## Benchmarks
 ### Benchmark Settings
