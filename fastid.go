@@ -65,7 +65,7 @@ var BenchmarkConfig = ConstructConfig(40, 15, 8)
 //  40 bits timestamp
 //  7  bits seq
 //  16 bits machine id
-var CommonConfig = ConstructConfig(40, 2, 16)
+var CommonConfig = ConstructConfig(40, 7, 16)
 
 var startEpochNano = getStartEpochFromEnv()
 
