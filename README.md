@@ -20,8 +20,14 @@ go get github.com/beinan/fastid
 ## Quick Start
 Generate an ID
 ```go
+
+import (
+  "fmt"
+  "github.com/beinan/fastid"
+)
+
 func ExampleGenInt64ID() {
-  id := CommonConfig.GenInt64ID()
+  id := fastid.CommonConfig.GenInt64ID()
   fmt.Printf("id generated: %v", id)
 }
 ```
