@@ -10,7 +10,7 @@ FastID is a pluggable unique ID generator in Go.
 * Under 64 bits (Long Integer)
 * K-Ordered
 * Lock-free (using atomic CAS)
-* Decentralized and no coordination needed
+* Decentralized
 
 ## Installation
 
@@ -28,7 +28,7 @@ func ExampleGenInt64ID() {
 
 ### Recommended Settings
  * 40 bits timestamp (34 years from 2018-06-01)
- * 16 bits machine ID (using lower 32 bits of IP v4 addr as default)
+ * 16 bits machine ID (using lower 16 bits of IP v4 addr as default)
  * 7  bits sequence number
  
 With this setting, FastID is able to generate 128(2^7) unique IDs per millisecond (1.048576 millisecond, 2^10 nanosecond).
